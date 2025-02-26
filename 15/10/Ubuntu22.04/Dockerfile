@@ -1,9 +1,8 @@
 FROM ubuntu:22.04 AS builder
 
-ENV TZ=Asia/Taipei
-ENV DEBIAN_FRONTEND=noninteractive
-
-RUN apt update && apt upgrade -y && \
+RUN export DEBIAN_FRONTEND=noninteractive && \
+    export TZ=Asia/Taipei && \
+    apt update && apt upgrade -y && \
     apt install -y \
     build-essential \
     libreadline-dev \
