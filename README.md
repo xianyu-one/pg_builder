@@ -1,7 +1,7 @@
 ## Build
 
 ```
-docker build -t pg:ubuntu24 -f Dockerfile_for_Ubuntu24.04 .
+docker build -t pg:ubuntu24 -f Dockerfile .
 ```
 
 ## Use
