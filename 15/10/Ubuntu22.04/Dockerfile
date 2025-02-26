@@ -26,7 +26,7 @@ RUN apt update && apt upgrade -y && \
     libpam0g-dev \
     libkrb5-dev \
     git \
-    postgresql-server-dev-16 \
+    postgresql-server-dev-all \
     wget
 
  
