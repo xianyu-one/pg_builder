@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM ubuntu:22.04 AS builder
 
 RUN apt update && apt upgrade -y && \
     apt install -y \
