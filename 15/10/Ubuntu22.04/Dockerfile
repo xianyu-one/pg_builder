@@ -59,7 +59,7 @@ RUN mkdir /build && \
       --with-lz4 && \
    make -j $CPU_CORES world && \
    make install-world && \
-   cp /build/pgbackrest/src/pgbackrest /release/postgresql/bin/ \
+   cp /build/pgbackrest/src/pgbackrest /release/postgresql/bin/ && \
    cp /build/pg_rman/pg_rman /release/postgresql/bin/ && \
    cd /release/postgresql/ && \
    tar -czvf /release/postgresql.tar.gz ./*
