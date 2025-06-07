@@ -9,7 +9,7 @@ on:
 
 jobs:
   build-and-push:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: Checkout repository
@@ -23,42 +23,23 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build and push Docker image pg15.10_ubuntu-22.04
+      - name: Build and push Docker image pg15.13_ubuntu-22.04
         uses: docker/build-push-action@v5
         with:
-          context: 15/10/Ubuntu22.04
+          context: 15/13/Ubuntu22.04
           push: true
           platforms: linux/amd64
           tags: |
-            mrxianyu/pg_builder:pg15.10_ubuntu-22.04
+            mrxianyu/pg_builder:pg15.13_ubuntu-22.04
 
-      - name: Build and push Docker image pg15.10_ubuntu-24.04
+      - name: Build and push Docker image pg15.13_ubuntu-24.04
         uses: docker/build-push-action@v5
         with:
-          context: 15/10/Ubuntu24.04
+          context: 15/13/Ubuntu24.04
           push: true
           platforms: linux/amd64
           tags: |
-            mrxianyu/pg_builder:pg15.10_ubuntu-24.04
-
-      - name: Build and push Docker image pg15.12_ubuntu-22.04
-        uses: docker/build-push-action@v5
-        with:
-          context: 15/12/Ubuntu22.04
-          push: true
-          platforms: linux/amd64
-          tags: |
-            mrxianyu/pg_builder:pg15.12_ubuntu-22.04
-
-      - name: Build and push Docker image pg15.12_ubuntu-24.04
-        uses: docker/build-push-action@v5
-        with:
-          context: 15/12/Ubuntu24.04
-          push: true
-          platforms: linux/amd64
-          tags: |
-            mrxianyu/pg_builder:pg15.12_ubuntu-24.04
+            mrxianyu/pg_builder:pg15.13_ubuntu-24.04
 
       - name: Docker Hub Description
         uses: peter-evans/dockerhub-description@v3
