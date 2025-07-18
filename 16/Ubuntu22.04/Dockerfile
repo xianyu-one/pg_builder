@@ -103,4 +103,4 @@ FROM scratch
 
 ARG ARCHIVE_NAME
 
-COPY --from=builder /release/${ARCHIVE_NAME} /${ARCHIVE_NAME}s
+COPY --from=builder /release/${ARCHIVE_NAME} /${ARCHIVE_NAME}
