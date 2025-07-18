@@ -15,7 +15,11 @@ ARG PGRMAN_BRANCH
 ARG ARCHIVE_NAME
 
 # 安装所有构建依赖
-RUN build-essential \
+RUN export DEBIAN_FRONTEND=noninteractive && \
+    export TZ=Asia/Taipei && \
+    apt update && apt upgrade -y && \
+    apt install -y \
+    build-essential \
     libreadline-dev \
     zlib1g-dev \
     python3-distutils \
