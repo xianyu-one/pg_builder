@@ -70,11 +70,61 @@ jobs:
             ARCHIVE_NAME=${{ steps.prep.outputs.archive_name }}
           outputs: type=local,dest=./output
 
+      - name: Determine if Latest
+        id: determine_latest
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const newVersion = '${{ github.event.inputs.pg_version }}';
+            let currentLatestVersion = '0.0';
+            let makeLatest = 'true'; // 如果还没有任何 release，则默认为 true
+
+            try {
+              // 获取当前标记为 'latest' 的 release
+              const { data: latestRelease } = await github.rest.repos.getLatestRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+              });
+              currentLatestVersion = latestRelease.tag_name.replace(/^v/, ''); // 移除版本号可能带的 'v' 前缀
+            } catch (error) {
+              if (error.status === 404) {
+                console.log('No latest release found. This build will be marked as latest.');
+              } else {
+                // 对于其他错误，则抛出异常
+                throw error;
+              }
+            }
+            
+            // 比较版本号
+            const newParts = newVersion.split('.').map(Number);
+            const latestParts = currentLatestVersion.split('.').map(Number);
+            const len = Math.max(newParts.length, latestParts.length);
+
+            for (let i = 0; i < len; i++) {
+              const newPart = newParts[i] || 0;
+              const latestPart = latestParts[i] || 0;
+              if (newPart > latestPart) {
+                makeLatest = 'true';
+                break;
+              }
+              if (newPart < latestPart) {
+                makeLatest = 'false';
+                break;
+              }
+            }
+
+            console.log(`New version to build: ${newVersion}`);
+            console.log(`Current latest version: ${currentLatestVersion}`);
+            console.log(`Make this the latest release: ${makeLatest}`);
+            
+            core.setOutput('make_latest', makeLatest);
+
       - name: Upload Artifact to Release
         uses: ncipollo/release-action@v1
         with:
           artifactPath: ./output/${{ steps.prep.outputs.archive_name }}
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag: latest
+          tag: ${{ github.event.inputs.pg_version }}
           allowUpdates: true
           generateReleaseNotes: true
+          makeLatest: ${{ steps.determine_latest.outputs.make_latest }}
