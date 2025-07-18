@@ -2,10 +2,10 @@ ARG PG_VERSION=16.9
 ARG PGBACKREST_VERSION=2.54.2
 ARG REPMGR_VERSION=v5.4.1
 ARG PGRMAN_BRANCH=REL_16_STABLE
-ARG ARCHIVE_NAME=postgresql-16.9-rockylinux8.tar.gz
+ARG ARCHIVE_NAME=postgresql-16.9-ubuntu24.04.tar.gz
 
 # 阶段1: 构建器
-FROM rockylinux:8 AS builder
+FROM ubuntu:24.04 AS builder
 
 # 传递构建参数到此阶段
 ARG PG_VERSION
@@ -15,16 +15,37 @@ ARG PGRMAN_BRANCH
 ARG ARCHIVE_NAME
 
 # 安装所有构建依赖
-RUN dnf groupinstall -y "Development Tools" && \
-    dnf config-manager --set-enabled powertools && \
-    dnf install -y \
-    clang gcc git krb5-devel libselinux-devel libzstd-devel lz4-devel make \
-    libcurl-devel json-c-devel openssl-devel pam-devel readline-devel rpmdevtools \
-    which perl-IPC-Run libxslt-devel zlib-devel wget bzip2-devel libxml2-devel \
-    libyaml-devel ninja-build perl perl-devel perl-CPAN readline-devel systemd-devel \
-    tcl tcl-devel python3-devel openssl-devel lz4-devel libicu-devel && \
-    pip3 install meson && \
-    dnf clean all
+RUN export DEBIAN_FRONTEND=noninteractive && \
+    export TZ=Asia/Taipei && \
+    apt update && apt upgrade -y && \
+    apt install -y \
+    build-essential \
+    libreadline-dev \
+    zlib1g-dev \
+    libsystemd-dev \
+    tcl-dev \
+    libperl-dev \
+    meson \
+    gcc \
+    libpq-dev \
+    libssl-dev \
+    libxml2-dev \
+    pkg-config \
+    liblz4-dev \
+    libzstd-dev \
+    libbz2-dev \
+    libz-dev \
+    libyaml-dev \
+    libssh2-1-dev \
+    python3-dev \
+    libselinux1-dev \
+    libpam0g-dev \
+    libkrb5-dev \
+    git \
+    wget \
+    libcurl4-openssl-dev \
+    libjson-c-dev \
+    flex
 
 # 创建工作目录
 RUN mkdir /build && mkdir /release
@@ -46,7 +67,7 @@ RUN cd /build && \
    make -j $CPU_CORES world && \
    make install-world
 
-ENV PKG_CONFIG_PATH="/build/postgresql-release/lib/pkgconfig:${PKG_CONFIG_PATH-}"
+ENV PKG_CONFIG_PATH="/build/postgresql-release/lib/pkgconfig"
 ENV PATH="/build/postgresql-release/bin:${PATH}"
 
 # 编译 pgBackRest
@@ -75,3 +96,10 @@ RUN cd /build && \
 # 将所有编译好的文件打包成一个 .tar.gz
 RUN cd /build/postgresql-release && \
    tar -czvf /release/${ARCHIVE_NAME} ./*
+
+# 阶段 2: 导出器
+FROM scratch
+
+ARG ARCHIVE_NAME
+
+COPY --from=builder /release/${ARCHIVE_NAME} /${ARCHIVE_NAME}

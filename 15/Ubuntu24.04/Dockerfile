@@ -2,10 +2,10 @@ ARG PG_VERSION=15.13
 ARG PGBACKREST_VERSION=2.54.2
 ARG REPMGR_VERSION=v5.4.1
 ARG PGRMAN_BRANCH=REL_15_STABLE
-ARG ARCHIVE_NAME=postgresql-15.13-ubuntu22.04.tar.gz
+ARG ARCHIVE_NAME=postgresql-15.13-ubuntu24.04.tar.gz
 
 # 阶段1: 构建器
-FROM ubuntu:22.04 AS builder
+FROM ubuntu:24.04 AS builder
 
 # 传递构建参数到此阶段
 ARG PG_VERSION
@@ -15,10 +15,13 @@ ARG PGRMAN_BRANCH
 ARG ARCHIVE_NAME
 
 # 安装所有构建依赖
-RUN build-essential \
+RUN export DEBIAN_FRONTEND=noninteractive && \
+    export TZ=Asia/Taipei && \
+    apt update && apt upgrade -y && \
+    apt install -y \
+    build-essential \
     libreadline-dev \
     zlib1g-dev \
-    python3-distutils \
     libsystemd-dev \
     tcl-dev \
     libperl-dev \
@@ -64,7 +67,7 @@ RUN cd /build && \
    make -j $CPU_CORES world && \
    make install-world
 
-ENV PKG_CONFIG_PATH="/build/postgresql-release/lib/pkgconfig:${PKG_CONFIG_PATH-}"
+ENV PKG_CONFIG_PATH="/build/postgresql-release/lib/pkgconfig"
 ENV PATH="/build/postgresql-release/bin:${PATH}"
 
 # 编译 pgBackRest
@@ -93,3 +96,10 @@ RUN cd /build && \
 # 将所有编译好的文件打包成一个 .tar.gz
 RUN cd /build/postgresql-release && \
    tar -czvf /release/${ARCHIVE_NAME} ./*
+
+# 阶段 2: 导出器
+FROM scratch
+
+ARG ARCHIVE_NAME
+
+COPY --from=builder /release/${ARCHIVE_NAME} /${ARCHIVE_NAME}

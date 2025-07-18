@@ -9,9 +9,9 @@ on:
         default: '16.9'
         type: string
       os_identifier:
-        description: '操作系统标识 (例如: rockylinux8)'
+        description: '操作系统标识 (例如: RockyLinux8, Ubuntu22.04)'
         required: true
-        default: 'rockylinux8'
+        default: 'RockyLinux8'
         type: string
       pgbackrest_version:
         description: 'pgBackRest 版本 (例如: 2.54.2)'
@@ -33,13 +33,12 @@ jobs:
           PG_VERSION="${{ github.event.inputs.pg_version }}"
           OS_ID="${{ github.event.inputs.os_identifier }}"
           
-          # 从 '16.9' 生成 '16' 和 '9'
+          # 从 '16.9' 生成 '16'
           PG_MAJOR=$(echo $PG_VERSION | cut -d. -f1)
-          PG_MINOR=$(echo $PG_VERSION | cut -d. -f2)
           
-          # 构造 Dockerfile 的上下文路径
-          # 结果示例: 16/9/rockylinux8
-          CONTEXT_PATH="$PG_MAJOR/$PG_MINOR/$OS_ID"
+          # 构造 Dockerfile 的上下文路径 (新结构)
+          # 结果示例: 16/rockylinux8
+          CONTEXT_PATH="$PG_MAJOR/$OS_ID"
           echo "context_path=${CONTEXT_PATH}" >> $GITHUB_OUTPUT
           
           # 构造最终的归档文件名
