@@ -38,8 +38,8 @@ jobs:
           PG_MINOR=$(echo $PG_VERSION | cut -d. -f2)
           
           # 构造 Dockerfile 的上下文路径
-          # 结果示例: postgresql/16/9/rockylinux8
-          CONTEXT_PATH="postgresql/$PG_MAJOR/$PG_MINOR/$OS_ID"
+          # 结果示例: 16/9/rockylinux8
+          CONTEXT_PATH="$PG_MAJOR/$PG_MINOR/$OS_ID"
           echo "context_path=${CONTEXT_PATH}" >> $GITHUB_OUTPUT
           
           # 构造最终的归档文件名
