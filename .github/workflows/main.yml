@@ -122,7 +122,7 @@ jobs:
       - name: Upload Artifact to Release
         uses: ncipollo/release-action@v1
         with:
-          artifactPath: ./output/${{ steps.prep.outputs.archive_name }}
+          artifacts: ./output/${{ steps.prep.outputs.archive_name }}
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.event.inputs.pg_version }}
           allowUpdates: true
