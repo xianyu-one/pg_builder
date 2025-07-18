@@ -1,11 +1,11 @@
-ARG PG_VERSION=15.13
+ARG PG_VERSION=16.9
 ARG PGBACKREST_VERSION=2.54.2
 ARG REPMGR_VERSION=v5.4.1
-ARG PGRMAN_BRANCH=REL_15_STABLE
-ARG ARCHIVE_NAME=postgresql-15.13-ubuntu22.04.tar.gz
+ARG PGRMAN_BRANCH=REL_16_STABLE
+ARG ARCHIVE_NAME=postgresql-16.9-ubuntu24.04.tar.gz
 
 # 阶段1: 构建器
-FROM ubuntu:22.04 AS builder
+FROM ubuntu:24.04 AS builder
 
 # 传递构建参数到此阶段
 ARG PG_VERSION
@@ -15,10 +15,13 @@ ARG PGRMAN_BRANCH
 ARG ARCHIVE_NAME
 
 # 安装所有构建依赖
-RUN build-essential \
+RUN export DEBIAN_FRONTEND=noninteractive && \
+    export TZ=Asia/Taipei && \
+    apt update && apt upgrade -y && \
+    apt install -y \
+    build-essential \
     libreadline-dev \
     zlib1g-dev \
-    python3-distutils \
     libsystemd-dev \
     tcl-dev \
     libperl-dev \

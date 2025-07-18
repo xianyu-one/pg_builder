@@ -1,5 +1,20 @@
+ARG PG_VERSION=15.13
+ARG PGBACKREST_VERSION=2.54.2
+ARG REPMGR_VERSION=v5.4.1
+ARG PGRMAN_BRANCH=REL_15_STABLE
+ARG ARCHIVE_NAME=postgresql-15.13-ubuntu24.04.tar.gz
+
+# 阶段1: 构建器
 FROM ubuntu:24.04 AS builder
 
+# 传递构建参数到此阶段
+ARG PG_VERSION
+ARG PGBACKREST_VERSION
+ARG REPMGR_VERSION
+ARG PGRMAN_BRANCH
+ARG ARCHIVE_NAME
+
+# 安装所有构建依赖
 RUN export DEBIAN_FRONTEND=noninteractive && \
     export TZ=Asia/Taipei && \
     apt update && apt upgrade -y && \
@@ -27,28 +42,22 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
     libpam0g-dev \
     libkrb5-dev \
     git \
-    postgresql-server-dev-all \
-    wget
+    wget \
+    libcurl4-openssl-dev \
+    libjson-c-dev \
+    flex
 
-RUN mkdir /build && \
-   mkdir /release && \
-   wget -q -O - \
-      https://github.com/pgbackrest/pgbackrest/archive/release/2.55.1.tar.gz | \
+# 创建工作目录
+RUN mkdir /build && mkdir /release
+
+# 编译 PostgreSQL
+RUN cd /build && \
+   wget -q -O - https://ftp.postgresql.org/pub/source/v${PG_VERSION}/postgresql-${PG_VERSION}.tar.gz | \
       tar zx -C /build && \
-   meson setup /build/pgbackrest /build/pgbackrest-release-2.55.1 && \
-   ninja -C /build/pgbackrest && \
-   cd build && \
-   git clone --branch REL_15_STABLE --single-branch https://github.com/ossc-db/pg_rman.git && \
-   cd /build/pg_rman && \
-   make && \
-   make install && \
-   wget -q -O - \
-      https://ftp.postgresql.org/pub/source/v15.13/postgresql-15.13.tar.gz | \
-      tar zx -C /build && \
-   cd /build/postgresql-15.13 && \
+   cd /build/postgresql-${PG_VERSION} && \
    export CPU_CORES=$(nproc) && \
    ./configure \
-      --prefix=/release/postgresql \
+      --prefix=/build/postgresql-release \
       --with-ssl=openssl \
       --with-perl \
       --with-python \
@@ -56,16 +65,34 @@ RUN mkdir /build && \
       --with-systemd \
       --with-lz4 && \
    make -j $CPU_CORES world && \
-   make install-world && \
-   cp /build/pgbackrest/src/pgbackrest /release/postgresql/bin/ && \
-   cp /build/pg_rman/pg_rman /release/postgresql/bin/ && \
-   cd /release/postgresql/ && \
-   tar -czvf /release/postgresql.tar.gz ./*
-    
-FROM alpine:3
+   make install-world
 
-COPY --from=builder /release/postgresql.tar.gz /release/postgresql.tar.gz
+ENV PKG_CONFIG_PATH="/build/postgresql-release/lib/pkgconfig:${PKG_CONFIG_PATH-}"
+ENV PATH="/build/postgresql-release/bin:${PATH}"
 
-WORKDIR /export-path
+# 编译 pgBackRest
+RUN cd /build && \
+   wget -q -O - https://github.com/pgbackrest/pgbackrest/archive/release/${PGBACKREST_VERSION}.tar.gz | \
+      tar zx -C /build && \
+   cd /build/pgbackrest-release-${PGBACKREST_VERSION} && \
+   meson setup build && \
+   ninja -C build && \
+   cp build/src/pgbackrest /build/postgresql-release/bin/
 
-CMD ["tar", "-xzvf", "/release/postgresql.tar.gz", "-C", "/export-path"]
+# 编译 pg_rman
+RUN cd /build && \
+   git clone --branch ${PGRMAN_BRANCH} --depth 1 https://github.com/ossc-db/pg_rman.git && \
+   cd /build/pg_rman && \
+   make && \
+   make install
+
+# 编译 repmgr
+RUN cd /build && \
+   git clone --branch ${REPMGR_VERSION} --depth 1 https://github.com/EnterpriseDB/repmgr.git && \
+   cd /build/repmgr && \
+   ./configure && \
+   make install
+
+# 将所有编译好的文件打包成一个 .tar.gz
+RUN cd /build/postgresql-release && \
+   tar -czvf /release/${ARCHIVE_NAME} ./*

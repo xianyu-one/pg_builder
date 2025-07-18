@@ -1,0 +1,81 @@
+name: Build and Upload to Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      pg_version:
+        description: 'PostgreSQL 版本 (例如: 16.9)'
+        required: true
+        default: '16.9'
+        type: string
+      os_identifier:
+        description: '操作系统标识 (例如: rockylinux8)'
+        required: true
+        default: 'rockylinux8'
+        type: string
+      pgbackrest_version:
+        description: 'pgBackRest 版本 (例如: 2.54.2)'
+        required: true
+        default: '2.54.2'
+        type: string
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare build variables
+        id: prep
+        run: |
+          PG_VERSION="${{ github.event.inputs.pg_version }}"
+          OS_ID="${{ github.event.inputs.os_identifier }}"
+          
+          # 从 '16.9' 生成 '16' 和 '9'
+          PG_MAJOR=$(echo $PG_VERSION | cut -d. -f1)
+          PG_MINOR=$(echo $PG_VERSION | cut -d. -f2)
+          
+          # 构造 Dockerfile 的上下文路径
+          # 结果示例: postgresql/16/9/rockylinux8
+          CONTEXT_PATH="postgresql/$PG_MAJOR/$PG_MINOR/$OS_ID"
+          echo "context_path=${CONTEXT_PATH}" >> $GITHUB_OUTPUT
+          
+          # 构造最终的归档文件名
+          # 结果示例: postgresql-16.9-rockylinux8.tar.gz
+          ARCHIVE_NAME="postgresql-${PG_VERSION}-${OS_ID}.tar.gz"
+          echo "archive_name=${ARCHIVE_NAME}" >> $GITHUB_OUTPUT
+          
+          # 构造 pg_rman 的分支名
+          # 结果示例: REL_16_STABLE
+          PGRMAN_BRANCH="REL_${PG_MAJOR}_STABLE"
+          echo "pgrman_branch=${PGRMAN_BRANCH}" >> $GITHUB_OUTPUT
+
+          echo "Context Path: ${CONTEXT_PATH}"
+          echo "Archive Name: ${ARCHIVE_NAME}"
+          echo "pg_rman Branch: ${PGRMAN_BRANCH}"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and extract artifact
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ steps.prep.outputs.context_path }}
+          push: false
+          build-args: |
+            PG_VERSION=${{ github.event.inputs.pg_version }}
+            PGBACKREST_VERSION=${{ github.event.inputs.pgbackrest_version }}
+            PGRMAN_BRANCH=${{ steps.prep.outputs.pgrman_branch }}
+            ARCHIVE_NAME=${{ steps.prep.outputs.archive_name }}
+          outputs: type=local,dest=./output
+
+      - name: Upload Artifact to Release
+        uses: ncipollo/release-action@v1
+        with:
+          artifactPath: ./output/${{ steps.prep.outputs.archive_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: latest
+          allowUpdates: true
+          generateReleaseNotes: true

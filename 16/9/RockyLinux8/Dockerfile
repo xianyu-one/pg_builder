@@ -1,11 +1,11 @@
-ARG PG_VERSION=15.13
+ARG PG_VERSION=16.9
 ARG PGBACKREST_VERSION=2.54.2
 ARG REPMGR_VERSION=v5.4.1
-ARG PGRMAN_BRANCH=REL_15_STABLE
-ARG ARCHIVE_NAME=postgresql-15.13-ubuntu22.04.tar.gz
+ARG PGRMAN_BRANCH=REL_16_STABLE
+ARG ARCHIVE_NAME=postgresql-16.9-rockylinux8.tar.gz
 
 # 阶段1: 构建器
-FROM ubuntu:22.04 AS builder
+FROM rockylinux:8 AS builder
 
 # 传递构建参数到此阶段
 ARG PG_VERSION
@@ -15,34 +15,16 @@ ARG PGRMAN_BRANCH
 ARG ARCHIVE_NAME
 
 # 安装所有构建依赖
-RUN build-essential \
-    libreadline-dev \
-    zlib1g-dev \
-    python3-distutils \
-    libsystemd-dev \
-    tcl-dev \
-    libperl-dev \
-    meson \
-    gcc \
-    libpq-dev \
-    libssl-dev \
-    libxml2-dev \
-    pkg-config \
-    liblz4-dev \
-    libzstd-dev \
-    libbz2-dev \
-    libz-dev \
-    libyaml-dev \
-    libssh2-1-dev \
-    python3-dev \
-    libselinux1-dev \
-    libpam0g-dev \
-    libkrb5-dev \
-    git \
-    wget \
-    libcurl4-openssl-dev \
-    libjson-c-dev \
-    flex
+RUN dnf groupinstall -y "Development Tools" && \
+    dnf config-manager --set-enabled powertools && \
+    dnf install -y \
+    clang gcc git krb5-devel libselinux-devel libzstd-devel lz4-devel make \
+    libcurl-devel json-c-devel openssl-devel pam-devel readline-devel rpmdevtools \
+    which perl-IPC-Run libxslt-devel zlib-devel wget bzip2-devel libxml2-devel \
+    libyaml-devel ninja-build perl perl-devel perl-CPAN readline-devel systemd-devel \
+    tcl tcl-devel python3-devel openssl-devel lz4-devel libicu-devel && \
+    pip3 install meson && \
+    dnf clean all
 
 # 创建工作目录
 RUN mkdir /build && mkdir /release
