@@ -96,49 +96,66 @@ jobs:
             const os = "${{ github.event.inputs.os_identifier }}";
             const arch = "${{ github.event.inputs.arch }}";
 
-            // 构造当前构建的描述行
+            const lineIdentifier = `* **${os} (${arch}):**`;
             const build_details = `pgBackRest-${{ github.event.inputs.pgbackrest_version }}, repmgr-${{ github.event.inputs.repmgr_version }}, pg_rman-${{ steps.prep.outputs.pgrman_branch }}`;
-            const newLine = `* **${os} (${arch}):** ${build_details}`;
-            
-            let release;
-            let body = "";
+            const newLine = `${lineIdentifier} ${build_details}`;
 
+            let currentBody = "";
             try {
-              // 尝试获取已存在的 Release
-              const { data } = await github.rest.repos.getReleaseByTag({ owner, repo, tag });
-              release = data;
-              body = release.body || "";
+              const { data: release } = await github.rest.repos.getReleaseByTag({ owner, repo, tag });
+              currentBody = release.body || "";
               console.log(`Found existing release for tag ${tag}.`);
             } catch (error) {
-              if (error.status === 404) {
-                console.log(`No release found for tag ${tag}. A new one will be created.`);
-                body = `## Component Versions\n\n`; // 新 Release 的初始标题
-              } else {
-                console.error("Error fetching release:", error);
-                throw error;
+              if (error.status !== 404) {
+                throw error; // Rethrow unexpected errors
               }
+              console.log(`No release found for tag ${tag}. A new one will be created.`);
             }
 
-            // 使用正则表达式查找并替换或追加
-            const regex = new RegExp(`^\\* \\*\\*${os} \\(${arch}\\):\\*\\*.*$`, "m");
-            if (body.match(regex)) {
+            // 按行处理 Release Notes
+            const header = "## Component Versions";
+            let lines = currentBody.split('\n').filter(line => line.trim() !== '');
+            const existingLineIndex = lines.findIndex(line => line.trim().startsWith(lineIdentifier));
+
+            if (existingLineIndex !== -1) {
               console.log("Found existing entry for this OS/Arch. Replacing it.");
-              body = body.replace(regex, newLine);
+              lines[existingLineIndex] = newLine;
             } else {
               console.log("No entry for this OS/Arch. Appending.");
-              body += `\n${newLine}`;
+              // 如果标题行不存在，则添加它
+              if (!lines.some(l => l.trim() === header)) {
+                lines.unshift(header);
+              }
+              lines.push(newLine);
             }
-            
-            // --- 版本比较逻辑，判断是否为 latest ---
-            let makeLatest = 'false';
+
+            const newBody = lines.join('\n');
+            core.setOutput('body', newBody);
+
+            const newVersion = '${{ github.event.inputs.pg_version }}';
+            let makeLatest = 'false'; // 默认不是 latest
+
             try {
               const { data: latestRelease } = await github.rest.repos.getLatestRelease({ owner, repo });
               const currentLatestVersion = latestRelease.tag_name.replace(/^v/, '');
-              const newVersion = '${{ github.event.inputs.pg_version }}';
+              
+              makeLatest = 'false'; // 先假设不是 latest
+              
+              const newParts = newVersion.split('.').map(Number);
+              const latestParts = currentLatestVersion.split('.').map(Number);
+              const len = Math.max(newParts.length, latestParts.length);
 
-              // 简单的版本比较
-              if (newVersion > currentLatestVersion) {
+              for (let i = 0; i < len; i++) {
+                const newPart = newParts[i] || 0;
+                const latestPart = latestParts[i] || 0;
+                if (newPart > latestPart) {
                   makeLatest = 'true';
+                  break;
+                }
+                if (newPart < latestPart) {
+                  makeLatest = 'false';
+                  break;
+                }
               }
             } catch (error) {
                if (error.status === 404) {
@@ -148,9 +165,7 @@ jobs:
                  throw error;
                }
             }
-            console.log(`Make this release the latest: ${makeLatest}`);
-
-            core.setOutput('body', body);
+            console.log(`New version: ${newVersion}, Current latest will be updated: ${makeLatest}`);
             core.setOutput('make_latest', makeLatest);
 
       - name: Set up Docker Buildx
