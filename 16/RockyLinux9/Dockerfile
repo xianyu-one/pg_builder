@@ -1,11 +1,11 @@
-ARG PG_VERSION=15.13
+ARG PG_VERSION=16.9
 ARG PGBACKREST_VERSION=2.54.2
 ARG REPMGR_VERSION=v5.4.1
-ARG PGRMAN_BRANCH=REL_15_STABLE
-ARG ARCHIVE_NAME=postgresql-15.13-x64-rockylinux8.tar.gz
+ARG PGRMAN_BRANCH=REL_16_STABLE
+ARG ARCHIVE_NAME=postgresql-16.9-x64-rockylinux9.tar.gz
 
 # 阶段1: 构建器
-FROM rockylinux:8 AS builder
+FROM rockylinux:9 AS builder
 
 # 传递构建参数到此阶段
 ARG PG_VERSION
@@ -16,7 +16,9 @@ ARG ARCHIVE_NAME
 
 # 安装所有构建依赖
 RUN dnf groupinstall -y "Development Tools" && \
-    dnf config-manager --set-enabled powertools && \
+    dnf install -y 'dnf-command(config-manager)' && \
+    dnf config-manager --set-enabled crb && \
+    dnf install epel-release -y && \
     dnf install -y \
     clang gcc git krb5-devel libselinux-devel libzstd-devel lz4-devel make \
     libcurl-devel json-c-devel openssl-devel pam-devel readline-devel rpmdevtools \
