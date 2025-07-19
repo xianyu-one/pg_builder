@@ -2,7 +2,7 @@ ARG PG_VERSION=16.9
 ARG PGBACKREST_VERSION=2.54.2
 ARG REPMGR_VERSION=v5.4.1
 ARG PGRMAN_BRANCH=REL_16_STABLE
-ARG ARCHIVE_NAME=postgresql-16.9-rockylinux8.tar.gz
+ARG ARCHIVE_NAME=postgresql-16.9-x64-rockylinux8.tar.gz
 
 # 阶段1: 构建器
 FROM rockylinux:8 AS builder
