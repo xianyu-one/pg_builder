@@ -5,7 +5,7 @@ ARG PGRMAN_BRANCH=REL_15_STABLE
 ARG ARCHIVE_NAME=postgresql-15.13-x64-rockylinux8.tar.gz
 
 # 阶段1: 构建器
-FROM rockylinux:8 AS builder
+FROM rockylinux/rockylinux:8 AS builder
 
 # 传递构建参数到此阶段
 ARG PG_VERSION

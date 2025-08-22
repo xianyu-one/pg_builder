@@ -6,7 +6,7 @@ on:
       pg_version:
         description: 'PostgreSQL 版本 (例如: 16.9)'
         required: true
-        default: '16.9'
+        default: '16.10'
         type: string
       os_identifier:
         description: '操作系统标识 (例如: RockyLinux8, Ubuntu22.04)'
@@ -22,9 +22,9 @@ on:
           - amd64
           - arm64
       pgbackrest_version:
-        description: 'pgBackRest 版本 (例如: 2.54.2)'
+        description: 'pgBackRest 版本 (例如: 2.55.1)'
         required: true
-        default: '2.54.2'
+        default: '2.55.1'
         type: string
       repmgr_version:
         description: 'repmgr 版本 (例如: v5.4.1)'

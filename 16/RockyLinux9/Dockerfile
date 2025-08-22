@@ -5,7 +5,7 @@ ARG PGRMAN_BRANCH=REL_16_STABLE
 ARG ARCHIVE_NAME=postgresql-16.9-x64-rockylinux9.tar.gz
 
 # 阶段1: 构建器
-FROM rockylinux:9 AS builder
+FROM rockylinux/rockylinux:9 AS builder
 
 # 传递构建参数到此阶段
 ARG PG_VERSION
